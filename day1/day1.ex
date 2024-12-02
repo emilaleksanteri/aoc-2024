@@ -1,10 +1,5 @@
 defmodule Day1 do
-  ## pair smallest in left column with smallest on right column
-  ## then calculate distances between pairs
-  ## no negative distances, always substract bigger from smaller (or multiply by -1 to turn positive in the end)
-  ## add all distances
-
-  def calc_diff(first, second) do
+  def calcDiff(first, second) do
     diff = first - second
 
     if diff < 0 do
@@ -14,7 +9,7 @@ defmodule Day1 do
     end
   end
 
-  def get_side(pairs, idx) do
+  def getSide(pairs, idx) do
     Enum.map(pairs, fn pair -> String.to_integer(Enum.at(pair, idx)) end) |> Enum.sort()
   end
 
@@ -22,7 +17,7 @@ defmodule Day1 do
     total =
       getGroupsFromFile()
       |> Enum.zip()
-      |> Enum.map(fn {first, second} -> calc_diff(first, second) end)
+      |> Enum.map(fn {first, second} -> calcDiff(first, second) end)
       |> Enum.reduce(fn elem, acc -> elem + acc end)
 
     IO.puts(total)
@@ -34,24 +29,24 @@ defmodule Day1 do
       |> String.split("\n", trim: true)
       |> Enum.map(fn line -> String.split(line, " ", trim: true) end)
 
-    [get_side(pairs, 0), get_side(pairs, 1)]
+    [getSide(pairs, 0), getSide(pairs, 1)]
   end
 
-  def aggregateCounts(right_side) do
-    Enum.frequencies(right_side)
+  def aggregateCounts(rightSide) do
+    Enum.frequencies(rightSide)
   end
 
   def pt2 do
     pairs = getGroupsFromFile()
-    agg_right_finds = aggregateCounts(Enum.at(pairs, 1))
+    aggRightFinds = aggregateCounts(Enum.at(pairs, 1))
 
     total =
       Enum.at(pairs, 0)
       |> Enum.map(fn row ->
-        in_map_res = agg_right_finds[row]
+        inMapRes = aggRightFinds[row]
 
-        if in_map_res do
-          in_map_res * row
+        if inMapRes do
+          inMapRes * row
         else
           row * 0
         end

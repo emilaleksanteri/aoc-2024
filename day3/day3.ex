@@ -4,7 +4,7 @@ defmodule Benchmark do
   end
 end
 
-defmodule StinkyParser do
+defmodule TokenStringParse do
   def getTokenTypeAndArgsFromToken(token) do
     splitAtName = String.split(token, "(")
     name = Enum.at(splitAtName, 0)
@@ -18,7 +18,140 @@ defmodule StinkyParser do
 
     [name, ints]
   end
+end
 
+defmodule StinkyParser2 do
+  ## tokens to match mul(int, int), don't(), do()
+  def parseRow(row) do
+    ## row, curr token, gathered instructions
+    parseRow(row, "", [], false)
+  end
+
+  def parseRow(<<"d", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "") do
+      parseRow(rest, "d", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"o", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "d") do
+      parseRow(rest, "#{currToken}o", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"n", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "do") do
+      parseRow(rest, "#{currToken}n", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"'", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "don") do
+      parseRow(rest, "#{currToken}'", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"t", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "don'") do
+      parseRow(rest, "#{currToken}t", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"m", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "do()") or not disabled do
+      parseRow(rest, "m", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"u", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "m") do
+      parseRow(rest, "#{currToken}u", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"l", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "mu") do
+      parseRow(rest, "#{currToken}l", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<"(", rest::binary>>, currToken, tokens, disabled) do
+    if String.equivalent?(currToken, "mul") or String.equivalent?(currToken, "do") or
+         String.equivalent?(currToken, "don't") do
+      parseRow(rest, "#{currToken}(", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<")", rest::binary>>, currToken, tokens, disabled) do
+    cond do
+      String.contains?(currToken, "do(") ->
+        parseRow(rest, "#{currToken})", tokens, false)
+
+      String.contains?(currToken, "don't(") ->
+        parseRow(rest, "#{currToken})", tokens, true)
+
+      String.contains?(currToken, "mul(") and String.contains?(currToken, ",") and
+          not disabled ->
+        parseRow(
+          rest,
+          "",
+          [TokenStringParse.getTokenTypeAndArgsFromToken(currToken) | tokens],
+          disabled
+        )
+
+      true ->
+        parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<",", rest::binary>>, currToken, tokens, disabled) do
+    if String.contains?(currToken, "mul(") and String.length(currToken) > String.length("mul(") do
+      parseRow(rest, "#{currToken},", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<d, rest::binary>>, currToken, tokens, disabled) when d in ?0..?9 do
+    if String.contains?(currToken, "mul(") and not String.contains?(currToken, ")") do
+      parseRow(rest, "#{currToken}#{d - ?0}", tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<_char, rest::binary>>, currToken, tokens, disabled) do
+    if String.contains?(currToken, "don't()") or String.contains?(currToken, "do()") do
+      parseRow(rest, currToken, tokens, disabled)
+    else
+      parseRow(rest, "", tokens, disabled)
+    end
+  end
+
+  def parseRow(<<>>, _, tokens, _) do
+    tokens
+  end
+end
+
+defmodule StinkyParser do
   ## tokens to match mul(int, int)
   def parseRow(row) do
     ## row, curr token, gathered instructions
@@ -59,7 +192,7 @@ defmodule StinkyParser do
 
   def parseRow(<<")", rest::binary>>, currToken, tokens) do
     if String.contains?(currToken, "mul(") and String.contains?(currToken, ",") do
-      parseRow(rest, "", [getTokenTypeAndArgsFromToken(currToken) | tokens])
+      parseRow(rest, "", [TokenStringParse.getTokenTypeAndArgsFromToken(currToken) | tokens])
     else
       parseRow(rest, "", tokens)
     end
@@ -120,6 +253,15 @@ defmodule Day3 do
   end
 
   def pt2() do
+    result =
+      getFileContent()
+      |> StinkyParser2.parseRow()
+      |> Enum.map(fn token ->
+        multiplyList(Enum.at(token, 1))
+      end)
+      |> Enum.reduce(fn curr, acc -> curr + acc end)
+
+    IO.puts("pt 2 result: #{result}")
   end
 end
 

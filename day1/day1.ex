@@ -1,3 +1,9 @@
+defmodule Benchmark do
+  def measure(function) do
+    function |> :timer.tc() |> elem(0) |> Kernel./(1_000_000) |> IO.puts()
+  end
+end
+
 defmodule Day1 do
   def calcDiff(first, second) do
     diff = first - second
@@ -57,5 +63,5 @@ defmodule Day1 do
   end
 end
 
-Day1.pt1()
-Day1.pt2()
+Benchmark.measure(fn -> Day1.pt1() end)
+Benchmark.measure(fn -> Day1.pt2() end)

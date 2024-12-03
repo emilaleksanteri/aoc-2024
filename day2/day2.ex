@@ -1,3 +1,9 @@
+defmodule Benchmark do
+  def measure(function) do
+    function |> :timer.tc() |> elem(0) |> Kernel./(1_000_000) |> IO.puts()
+  end
+end
+
 defmodule Day2 do
   def getFileLines do
     File.read!("input.txt") |> String.split("\n")
@@ -124,5 +130,5 @@ defmodule Day2 do
   end
 end
 
-Day2.pt1()
-Day2.pt2()
+Benchmark.measure(fn -> Day2.pt1() end)
+Benchmark.measure(fn -> Day2.pt2() end)
